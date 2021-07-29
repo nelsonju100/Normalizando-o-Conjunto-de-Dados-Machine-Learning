@@ -1,42 +1,76 @@
 import numpy as np
 import pandas as pd
 
-print("Carregando a base de dados...")
-baseDeDados = pd.read_csv('admission.csv', delimiter=';')
-X = baseDeDados.iloc[:,:-1].values
-y = baseDeDados.iloc[:,-1].values
-print("ok!")
+def loadDataSet(filename):
+    print("Carregando a base de dados...")
+    baseDeDados = pd.read_csv(filename, delimiter=';')
+    X = baseDeDados.iloc[:,:-1].values
+    y = baseDeDados.iloc[:,-1].values
+    print("ok!")
+    return X, y
 
-print("Preenchendo dados que estão faltando...")
-from sklearn.impute import SimpleImputer
-imputer = SimpleImputer(missing_values=np.nan, strategy='median')
-imputer = imputer.fit_transform(X[:,1:])
-print("ok!")
+def fillMissingData(X):
+    print("Preenchendo dados que estão faltando...")
+    from sklearn.impute import SimpleImputer
+    imputer = SimpleImputer(missing_values=np.nan, strategy='median')
+    X[:,1:] = imputer.fit_transform(X[:,1:])
+    print("ok!")
+    return X
 
-print("Computando rotulação...")
-from sklearn.preprocessing import LabelEncoder
-labelencoder_X = LabelEncoder()
-X[:, 0] = labelencoder_X.fit_transform(X[:, 0])
+def computeCategorization(X):
+    print("Computando rotulação...")
+    from sklearn.preprocessing import LabelEncoder
+    labelencoder_X = LabelEncoder()
+    X[:, 0] = labelencoder_X.fit_transform(X[:, 0])
 
-X = X[:,1:]
-D = pd.get_dummies(X[:,0])
-X = np.insert(X, 0, D.values, axis=1)
-print("ok!")
+    D = pd.get_dummies(X[:,0])
+    X = X[:,1:]
+    X = np.insert(X, 0, D.values, axis=1)
+    print("ok!")
+    return X
 
-print("Separando conjuntos de teste e treino...")
-from sklearn.model_selection import train_test_split
-XTrain, XTest, yTrain, yTest = train_test_split(X, y, test_size = 0.2)
-print("ok!")
+def splitTrainTestSets(X, y, testSize):
+    print("Separando conjuntos de teste e treino...")
+    from sklearn.model_selection import train_test_split
+    XTrain, XTest, yTrain, yTest = train_test_split(X, y, test_size = testSize)
+    print("ok!")
+    return XTrain, XTest, yTrain, yTest
 
-#remover warning de dataconversionwarning
-from sklearn.exceptions import DataConversionWarning
-import warnings
-warnings.filterwarnings(action='ignore', category=DataConversionWarning)
+def computeNormalization(XTrain, XTest):
+    print("Computando Normalização...")
+    from sklearn.preprocessing import StandardScaler
+    scaleX = StandardScaler()
+    XTrain = scaleX.fit_transform(XTrain)
+    XTest = scaleX.fit_transform(XTest)
+    print("ok!")
+    return XTrain, XTest
 
-#falar de distancia euclidiana pra justificar normalização
-print("Computando normalização...")
-from sklearn.preprocessing import StandardScaler
-scale_X = StandardScaler()
-XTrain = scale_X.fit_transform(XTrain)
-XTest = scale_X.fit_transform(XTest)
-print("ok!")
+def computeLinearRegression(XTrain, yTrain, XTest, yTest):
+    import matplotlib.pyplot as plt
+    from sklearn.linear_model import LinearRegression
+
+    print("Computando Regressão Linear...")
+    regressor = LinearRegression()
+    regressor.fit(XTrain, yTrain)
+    yPred = regressor.predict(XTest)
+    print("ok!")
+
+    print(XTest[:,-1])
+
+    plt.scatter(XTest[:,-1], yTest, color = 'red')
+    plt.plot(XTest[:,-1], regressor.predict(XTest), color='blue')
+    plt.title("Inscritos x Visualizações")
+    plt.xlabel("Inscritos")
+    plt.ylabel("Visualizações")
+    plt.show()
+
+def runLinearRegressionExample():
+    X, y = loadDataSet("svbr.csv")
+    X = fillMissingData(X)
+    X = computeCategorization(X)
+    XTrain, XTest, yTrain, yTest = splitTrainTestSets(X, y, 0.8)
+    computeLinearRegression(XTrain, yTrain, XTest, yTest)
+
+if __name__ == "__main__":
+    
+    runLinearRegressionExample()
